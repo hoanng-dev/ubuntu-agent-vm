@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ubuntu Agent VM Builder</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231f6feb'/%3E%3Cpath d='M8 11l6 5-6 5M16 22h8' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #f5f6f8; --card: #ffffff; --text: #1c2330; --muted: #5d6778; --line: #d9dee6;
+  --accent: #1f6feb; --accent-text: #ffffff; --code-bg: #0f1722; --code-text: #e6edf3;
+  --err: #b42318; --err-bg: #fdecea; --warn: #8a5300; --warn-bg: #fff4dd; --ok: #1a7f37;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1117; --card: #161b22; --text: #e6edf3; --muted: #9aa5b4; --line: #30363d;
+    --accent: #2f81f7; --accent-text: #ffffff; --code-bg: #010409; --code-text: #e6edf3;
+    --err: #ff7b72; --err-bg: #3a1714; --warn: #e3b341; --warn-bg: #33270b; --ok: #3fb950;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+main { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+.lead { color: var(--muted); margin: 0 0 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.card h2 { font-size: 15px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.field { margin-bottom: 12px; }
+.field:last-child { margin-bottom: 0; }
+label { display: block; font-weight: 600; margin-bottom: 4px; }
+.hint { color: var(--muted); font-size: 13px; margin-top: 4px; }
+input[type=text], input[type=password], textarea {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--bg); color: var(--text); font: 14px/1.4 Consolas, "Cascadia Mono", monospace;
+}
+textarea { resize: vertical; min-height: 64px; }
+input:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.check { display: flex; gap: 8px; align-items: center; font-weight: 600; margin-bottom: 8px; }
+.check input { width: 18px; height: 18px; }
+.row { display: flex; gap: 8px; }
+.row > * { flex: 1; }
+.pw { display: flex; gap: 8px; }
+.pw input { flex: 1; }
+button {
+  font: inherit; font-weight: 600; border-radius: 6px; padding: 8px 14px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--card); color: var(--text); min-height: 38px;
+}
+button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.tabs { display: flex; gap: 8px; margin: 20px 0 0; flex-wrap: wrap; }
+.tabs button[aria-selected="true"] { border-color: var(--accent); color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+.out { margin-top: 12px; }
+pre {
+  margin: 0; padding: 14px; border-radius: 8px; background: var(--code-bg); color: var(--code-text);
+  font: 13.5px/1.5 Consolas, "Cascadia Mono", monospace; white-space: pre-wrap; word-break: break-all;
+}
+.out-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.out-head p { margin: 0; color: var(--muted); }
+.msg { padding: 8px 12px; border-radius: 6px; margin-top: 8px; font-size: 14px; }
+.msg.err { background: var(--err-bg); color: var(--err); }
+.msg.warn { background: var(--warn-bg); color: var(--warn); }
+.copied { color: var(--ok); font-weight: 600; }
+ol.next { margin: 8px 0 0; padding-left: 20px; }
+ol.next li { margin-bottom: 10px; }
+ol.next pre { margin-top: 4px; padding: 8px 10px; }
+</style>
+</head>
+<body>
+<main>
+<h1>Ubuntu Agent VM Builder</h1>
+<p class="lead">Fill in the new VM's details, copy the command, paste it into PowerShell. Everything runs in this page: nothing is sent anywhere.</p>
+
+<div class="grid">
+  <section class="card">
+    <h2>Target VM</h2>
+    <div class="field">
+      <label for="user">Login user on the VM</label>
+      <input type="text" id="user" value="root" autocomplete="off" spellcheck="false">
+      <div class="hint">Use <code>root</code> if you can SSH in as root. Any other user runs the script through <code>sudo</code>.</div>
+    </div>
+    <div class="field">
+      <label for="lan">LAN IP of the VM</label>
+      <input type="text" id="lan" placeholder="192.168.1.50" autocomplete="off" spellcheck="false">
+      <div class="hint">Needed for "Run from Windows" and the follow-up commands. On the VM console: <code>ip -br a</code>.</div>
+    </div>
+    <div class="field">
+      <label class="check"><input type="checkbox" id="doInternal" checked> Set the internal network IP</label>
+      <div class="row">
+        <div>
+          <label for="ip">Internal IP / prefix</label>
+          <input type="text" id="ip" placeholder="10.0.0.10/24" autocomplete="off" spellcheck="false">
+        </div>
+        <div>
+          <label for="nic">NIC name (optional)</label>
+          <input type="text" id="nic" placeholder="auto, e.g. eth1" autocomplete="off" spellcheck="false">
+        </div>
+      </div>
+      <div class="hint">One different IP per VM. Leave the NIC empty to auto-detect the NIC without the default route.</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Access</h2>
+    <div class="field">
+      <label for="key">SSH public key (optional)</label>
+      <textarea id="key" placeholder="ssh-ed25519 AAAA... comment" spellcheck="false"></textarea>
+      <div class="hint">Copy yours in PowerShell: <code>Get-Content $env:USERPROFILE\.ssh\id_ed25519.pub | Set-Clipboard</code></div>
+    </div>
+    <div class="field">
+      <label for="pw">New root password (optional)</label>
+      <div class="pw">
+        <input type="password" id="pw" autocomplete="new-password" spellcheck="false">
+        <button type="button" id="pwToggle" aria-pressed="false">Show</button>
+      </div>
+      <div class="hint">Leave empty to keep root's current password. Fill it when you log in as a normal user, so root can SSH in afterwards.</div>
+    </div>
+    <div class="field">
+      <label for="keyFile">Private key file on Windows</label>
+      <input type="text" id="keyFile" value="$env:USERPROFILE\.ssh\id_ed25519" autocomplete="off" spellcheck="false">
+      <div class="hint">Only used in the follow-up command to log in with the key.</div>
+    </div>
+    <div class="field">
+      <label class="check"><input type="checkbox" id="doClaude" checked> Install Claude Code (latest)</label>
+    </div>
+    <div class="field">
+      <label for="ref">Script version</label>
+      <input type="text" id="ref" value="main" autocomplete="off" spellcheck="false">
+      <div class="hint"><code>main</code> = newest. Put a commit SHA to run an exact reviewed version.</div>
+    </div>
+  </section>
+</div>
+
+<div class="tabs" role="tablist">
+  <button type="button" role="tab" id="tabA" aria-selected="true" data-mode="session">Paste into SSH session (already logged in)</button>
+  <button type="button" role="tab" id="tabB" aria-selected="false" data-mode="windows">Run from Windows PowerShell (not logged in yet)</button>
+</div>
+
+<section class="card out" aria-live="polite">
+  <div class="out-head">
+    <p id="modeHint"></p>
+    <div><span id="copied" class="copied" hidden>Copied</span> <button type="button" class="primary" id="copy">Copy command</button></div>
+  </div>
+  <pre id="cmd"></pre>
+  <div id="msgs"></div>
+</section>
+
+<section class="card out">
+  <h2>After it finishes</h2>
+  <ol class="next" id="next"></ol>
+</section>
+</main>
+
+<script>
+// ---- core: pure builder (no DOM), kept separate so it can be tested on its own ----
+const REPO_RAW = 'https://raw.githubusercontent.com/hoanng-dev/ubuntu-agent-vm';
+const SAFE = /^[A-Za-z0-9._\/:=@%+,-]+$/;
+
+function shQuote(s) {
+  return SAFE.test(s) ? s : "'" + s.replace(/'/g, "'\\''") + "'";
+}
+
+// PowerShell single-quoted string: only quote characters (incl. curly ones) need doubling.
+function psQuote(s) {
+  return "'" + s.replace(/['‘’‚‛]/g, m => m + m) + "'";
+}
+
+function parseIp(raw) {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})(?:\/(\d{1,2}))?$/.exec(raw);
+  if (!m) return null;
+  const parts = m.slice(1, 5).map(Number);
+  if (parts.some(p => p > 255)) return null;
+  const prefix = m[5] === undefined ? 24 : Number(m[5]);
+  if (prefix < 8 || prefix > 32) return null;
+  return { addr: parts.join('.'), prefix };
+}
+
+function build(o) {
+  const errors = [], warnings = [];
+  const user = (o.user || '').trim() || 'root';
+  const isRoot = user === 'root';
+  const lan = (o.lan || '').trim();
+  const ref = (o.ref || '').trim() || 'main';
+  const key = (o.key || '').trim();
+  const pw = o.pw || '';
+  const nic = (o.nic || '').trim();
+  let internal = null;
+
+  if (!/^[a-z_][a-z0-9_.-]*$/i.test(user)) errors.push('Login user: letters, digits, "_", "-", "." only.');
+  if (!/^[A-Za-z0-9._\/-]+$/.test(ref)) errors.push('Script version: use "main" or a commit SHA.');
+
+  const args = [];
+  if (o.doInternal) {
+    const ipRaw = (o.ip || '').trim();
+    if (!ipRaw) errors.push('Internal IP is required (or untick "Set the internal network IP").');
+    else {
+      internal = parseIp(ipRaw);
+      if (!internal) errors.push('Internal IP must look like 10.0.0.10/24 (prefix 8-32).');
+      else args.push('--internal-ip', internal.addr + '/' + internal.prefix);
+    }
+    if (nic) {
+      if (!/^[A-Za-z0-9._-]{1,15}$/.test(nic)) errors.push('NIC name looks wrong (e.g. eth1, enp0s8).');
+      else args.push('--internal-if', nic);
+    }
+  } else {
+    args.push('--no-internal');
+  }
+
+  if (key) {
+    if (/PRIVATE KEY/.test(key)) errors.push('That is a PRIVATE key. Paste the .pub file content instead.');
+    else if (/[\r\n]/.test(key)) errors.push('SSH public key must be a single line.');
+    else if (!/^(ssh-(ed25519|rsa|dss)|ecdsa-sha2-nistp\d+|sk-[a-z0-9@.-]+) [A-Za-z0-9+\/=]{40,}( .*)?$/.test(key))
+      errors.push('SSH public key should start with ssh-ed25519 / ssh-rsa / ecdsa-... followed by the key.');
+    else args.push('--ssh-key', key);
+  }
+  if (!o.doClaude) args.push('--no-claude');
+
+  if (/[\r\n]/.test(pw)) errors.push('Root password cannot contain a line break.');
+  if (pw && pw.length < 8) warnings.push('Root password is shorter than 8 characters.');
+  if (!isRoot && !pw) warnings.push('You log in as "' + user + '": without a root password, root can only log in with the SSH key.');
+
+  const url = REPO_RAW + '/' + ref + '/setup-ubuntu-agent-vm.sh';
+  const env = pw ? 'ROOT_PASSWORD=' + shQuote(pw) + ' ' : '';
+  const runner = isRoot ? env + 'bash' : 'sudo ' + (pw ? 'env ' + env : '') + 'bash';
+  const remote = 'curl -fsSL ' + url + ' | ' + runner + ' -s -- ' + args.map(shQuote).join(' ');
+
+  let cmd;
+  if (o.mode === 'windows') {
+    if (!lan) errors.push('LAN IP of the VM is required for "Run from Windows".');
+    else if (!/^[A-Za-z0-9.:-]+$/.test(lan)) errors.push('LAN IP looks wrong.');
+    // Windows PowerShell 5.1 passes native arguments without escaping inner double quotes.
+    if (remote.includes('"')) errors.push('A double quote (") cannot go through PowerShell to ssh. Remove it, or use "Paste into SSH session".');
+    cmd = 'ssh ' + (isRoot ? '' : '-t ') + user + '@' + (lan || '<LAN-IP>') + ' ' + psQuote(remote);
+  } else {
+    // Leading space: bash with HISTCONTROL=ignorespace (Ubuntu default) keeps it out of history.
+    cmd = (pw ? ' ' : '') + remote;
+  }
+
+  const next = [];
+  if (o.mode === 'windows') next.push({ text: 'Type the password when ssh asks' + (isRoot ? '' : ' (then the sudo password)') + '. Wait 1-3 minutes for the line ALL CHECKS PASSED.' });
+  else next.push({ text: 'Paste with right-click (or Ctrl+V) and press Enter' + (isRoot ? '' : ', type the sudo password') + '. Wait 1-3 minutes for the line ALL CHECKS PASSED.' });
+  const host = internal ? internal.addr : (lan || '<LAN-IP>');
+  const keyFile = (o.keyFile || '').trim();
+  if (key && keyFile) next.push({ text: 'From Windows PowerShell, log in with the key (no password):', code: 'ssh -i ' + keyFile + ' root@' + host });
+  else next.push({ text: 'From Windows PowerShell, log in as root:', code: 'ssh root@' + host });
+  if (o.doClaude) next.push({ text: 'On the VM, log in to Claude once, then type /exit. After that the agent can run:', code: 'claude\nclaude --dangerously-skip-permissions' });
+  const known = [lan, internal && internal.addr].filter(Boolean);
+  next.push({ text: 'Rebuilt a VM on the same IP and ssh warns "REMOTE HOST IDENTIFICATION HAS CHANGED"? Run:', code: (known.length ? known : ['<LAN-IP>']).map(h => 'ssh-keygen -R ' + h).join('\n') });
+
+  return { cmd, errors, warnings, next };
+}
+// ---- end core ----
+
+const $ = id => document.getElementById(id);
+const FIELDS = ['user', 'lan', 'ip', 'nic', 'key', 'keyFile', 'ref'];
+const CHECKS = ['doInternal', 'doClaude'];
+const STORE = 'ubuntu-agent-vm-builder';
+let mode = 'session';
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE) || '{}');
+    FIELDS.forEach(f => { if (typeof s[f] === 'string') $(f).value = s[f]; });
+    CHECKS.forEach(f => { if (typeof s[f] === 'boolean') $(f).checked = s[f]; });
+    if (s.mode === 'windows' || s.mode === 'session') mode = s.mode;
+  } catch (e) { /* storage unavailable: start with defaults */ }
+}
+
+function save() {
+  // The root password is never stored.
+  try {
+    const s = { mode };
+    FIELDS.forEach(f => { s[f] = $(f).value; });
+    CHECKS.forEach(f => { s[f] = $(f).checked; });
+    localStorage.setItem(STORE, JSON.stringify(s));
+  } catch (e) { /* ignore */ }
+}
+
+function render() {
+  const o = { mode, pw: $('pw').value };
+  FIELDS.forEach(f => { o[f] = $(f).value; });
+  CHECKS.forEach(f => { o[f] = $(f).checked; });
+  const r = build(o);
+
+  ['ip', 'nic'].forEach(f => { $(f).disabled = !o.doInternal; });
+  $('tabA').setAttribute('aria-selected', String(mode === 'session'));
+  $('tabB').setAttribute('aria-selected', String(mode === 'windows'));
+  $('modeHint').textContent = mode === 'session'
+    ? 'You already ran "ssh ' + ((o.user || 'root').trim() || 'root') + '@<LAN-IP>" in PowerShell and see the Linux prompt. Paste this there.'
+    : 'Paste this into a fresh PowerShell window on Windows. It connects and runs the setup in one go.';
+
+  $('cmd').textContent = r.errors.length ? 'Fix the fields marked below to get the command.' : r.cmd;
+  $('copy').disabled = r.errors.length > 0;
+  const msgs = $('msgs');
+  msgs.replaceChildren();
+  r.errors.forEach(t => { const d = document.createElement('div'); d.className = 'msg err'; d.textContent = t; msgs.append(d); });
+  r.warnings.forEach(t => { const d = document.createElement('div'); d.className = 'msg warn'; d.textContent = t; msgs.append(d); });
+  if (!r.errors.length && o.pw) {
+    const d = document.createElement('div'); d.className = 'msg warn';
+    d.textContent = 'The command contains the root password. Do not save or share it; clear the password field when done.';
+    msgs.append(d);
+  }
+
+  const next = $('next');
+  next.replaceChildren();
+  r.next.forEach(n => {
+    const li = document.createElement('li');
+    li.append(document.createTextNode(n.text));
+    if (n.code) { const p = document.createElement('pre'); p.textContent = n.code; li.append(p); }
+    next.append(li);
+  });
+  $('copied').hidden = true;
+  save();
+  return r;
+}
+
+async function copyCmd() {
+  const text = $('cmd').textContent;
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.append(ta); ta.select();
+    try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+    ta.remove();
+  }
+  $('copied').textContent = ok ? 'Copied' : 'Copy failed: select the text and press Ctrl+C';
+  $('copied').hidden = false;
+}
+
+load();
+document.querySelectorAll('input, textarea').forEach(el => el.addEventListener('input', render));
+document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { mode = b.dataset.mode; render(); }));
+$('copy').addEventListener('click', copyCmd);
+$('pwToggle').addEventListener('click', () => {
+  const show = $('pw').type === 'password';
+  $('pw').type = show ? 'text' : 'password';
+  $('pwToggle').textContent = show ? 'Hide' : 'Show';
+  $('pwToggle').setAttribute('aria-pressed', String(show));
+});
+render();
+</script>
+</body>
+</html>

@@ -50,6 +50,20 @@ Options:
 
 When it finishes, run `claude` once as root to log in.
 
+### Command builder
+
+`setup-ubuntu-agent-vm-builder.html` is a single offline page: fill in the VM's details (internal IP,
+NIC, SSH public key, optional root password), click **Copy command** and paste it into PowerShell,
+either inside an SSH session that is already logged in to the VM, or as a one-shot `ssh` command from
+Windows. It quotes passwords and keys safely, keeps a password out of the shell history, never stores
+the password and sends nothing anywhere.
+
+GitHub serves raw files as plain text, so download the page before opening it:
+
+```powershell
+Invoke-WebRequest https://raw.githubusercontent.com/hoanng-dev/ubuntu-agent-vm/main/setup-ubuntu-agent-vm-builder.html -OutFile builder.html; Start-Process builder.html
+```
+
 ### Pin a version
 
 `main` always serves the newest script. To run exactly the code you reviewed, replace `main` in the
